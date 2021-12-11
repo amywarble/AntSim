@@ -1,107 +1,99 @@
 ﻿using AntSim.Constants;
 using SharpNeat.BlackBox;
+using SharpNeat.Neat.Genome;
 using System;
 
 namespace AntSim.Sim
 {
-    public class Creature : IWorldEntity
+    public class Creature
     {
-        private readonly IBlackBox<double> _brain;
-        private readonly World _world;
+        public NeatGenome<double> Genome { get; }
+        public IBlackBox<double> Brain { get; }
 
-        public int Id { get; set; }
-        public int X { get; set; }
-        public int Y { get; set; }
+        public int Health { get; set; }
+        public int Energy { get; set; }
 
-        public Creature(IBlackBox<double> brain, World world)
+
+        public Creature(NeatGenome<double> genome, IBlackBox<double> brain)
         {
-            _brain = brain ?? throw new ArgumentNullException(nameof(brain));
-            _world = world ?? throw new ArgumentNullException(nameof(world));
+            Genome = genome ?? throw new ArgumentNullException(nameof(genome));
+            Brain = brain ?? throw new ArgumentNullException(nameof(brain));
         }
 
 
-        public void Step()
+        public void Perceive(World world, Cell currentCell)
         {
-            SetInputs();
-            _brain.Activate();
+            Brain.InputVector.Reset();
 
-            ReadOutput(out var output, out var signal);
-            if (signal > _world.SignalThreshold)
+            InputBias = 1.0d;
+
+            InputDistanceWallNorth = Clamp((world.Height - currentCell.Y - 1) / world.SensorRange);
+            InputDistanceWallEast = Clamp((world.Width - currentCell.X - 1) / world.SensorRange);
+
+            InputDistanceWallSouth = Clamp(currentCell.Y / world.SensorRange);
+            InputDistanceWallWest = Clamp(currentCell.X / world.SensorRange);
+        }
+
+
+        public void Think() => Brain.Activate();
+
+
+        private double Clamp(double value) =>
+            value switch
             {
-                Act(output);
-            }
-        }
+                < 0 => 0,
+                > 1 => 1,
+                _ => value
+            };
 
 
-        private void Act(CreatureOutput output)
+        public void Act(World world, Cell currentCell)
         {
+            ReadOutput(out var output, out var signal);
+
+            if (signal < world.SignalThreshold)
+                return;
+
+            Cell targetCell;
             switch (output)
             {
                 case CreatureOutput.MoveNorth:
-                    if (Y < _world.Height - 1 && _world.GetCreatureAt(X, Y + 1) == null)
-                        Y++;
-
-                    break;
-
-                case CreatureOutput.MoveEast:
-                    if (X < _world.Width - 1 && _world.GetCreatureAt(X + 1, Y) == null)
-                        X++;
-
+                    targetCell = currentCell.Grid[currentCell.X, currentCell.Y + 1];
                     break;
 
                 case CreatureOutput.MoveSouth:
-                    if (Y > 0 && _world.GetCreatureAt(X, Y - 1) == null)
-                        Y--;
+                    targetCell = currentCell.Grid[currentCell.X, currentCell.Y - 1];
+                    break;
 
+                case CreatureOutput.MoveEast:
+                    targetCell = currentCell.Grid[currentCell.X + 1, currentCell.Y];
                     break;
 
                 case CreatureOutput.MoveWest:
-                    if (X > 0 && _world.GetCreatureAt(X - 1, Y) == null)
-                        X--;
-
+                    targetCell = currentCell.Grid[currentCell.X - 1, currentCell.Y];
                     break;
 
-                case CreatureOutput.Contested:
+                default:
+                    targetCell = null;
                     break;
             }
-        }
 
-        private void SetInputs()
-        {
-            _brain.InputVector.Reset();
-
-            /*
-             * "A bias node provides considerable flexibility to a neural network model."
-             * https://stats.stackexchange.com/questions/185911/why-are-bias-nodes-used-in-neural-networks
-             */
-            SetInput(CreatureInput.Bias, 1.0f);
-
-            SetScaledSensorInput(CreatureInput.DistanceWallNorth, _world.Height - Y - 1);
-            SetScaledSensorInput(CreatureInput.DistanceWallEast, _world.Width - X - 1);
-
-            SetScaledSensorInput(CreatureInput.DistanceWallSouth, Y);
-            SetScaledSensorInput(CreatureInput.DistanceWallWest, X);
-        }
-
-
-        private void SetInput(CreatureInput neuron, double value) => _brain.InputVector[(int)neuron] = value;
-
-
-        private void SetScaledSensorInput(CreatureInput neuron, double value)
-        {
-            if (value < _world.SensorRange)
-                SetInput(neuron, 1 - value / _world.SensorRange);
+            if (targetCell is { IsWall: false, Creature: null } && targetCell != currentCell)
+            {
+                currentCell.Creature = null;
+                targetCell.Creature = this;
+            }
         }
 
 
         private void ReadOutput(out CreatureOutput output, out double signal)
         {
-            var sig = _brain.OutputVector[0];
+            var sig = Brain.OutputVector[0];
             var idx = 0;
 
-            for (var i = 1; i < _brain.OutputCount; i++)
+            for (var i = 1; i < Brain.OutputCount; i++)
             {
-                var val = _brain.OutputVector[i];
+                var val = Brain.OutputVector[i];
                 if (val > sig)
                 {
                     sig = val;
@@ -109,12 +101,41 @@ namespace AntSim.Sim
                 }
                 else if (val == sig)
                 {
-                    idx = (int)CreatureOutput.Contested;
+                    idx = -1;
                 }
             }
 
             output = (CreatureOutput)idx;
             signal = sig;
+        }
+
+        /// <summary>
+        /// A bias node provides considerable flexibility to a neural network model.
+        /// See <see href="https://stats.stackexchange.com/questions/185911/why-are-bias-nodes-used-in-neural-networks">Stack Exchange</see>
+        /// </summary>
+        private double InputBias
+        {
+            set => Brain.InputVector[0] = value;
+        }
+
+        private double InputDistanceWallNorth
+        {
+            set => Brain.InputVector[1] = value;
+        }
+
+        private double InputDistanceWallEast
+        {
+            set => Brain.InputVector[2] = value;
+        }
+
+        private double InputDistanceWallSouth
+        {
+            set => Brain.InputVector[3] = value;
+        }
+
+        private double InputDistanceWallWest
+        {
+            set => Brain.InputVector[4] = value;
         }
     }
 }
