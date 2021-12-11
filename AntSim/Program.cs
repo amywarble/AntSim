@@ -1,5 +1,7 @@
-﻿using AntSim.Constants;
+﻿using AntSim.Eval;
+using AntSim.Sim;
 using AntSim.Util;
+using Serilog;
 using SharpNeat.Neat;
 using SharpNeat.Neat.ComplexityRegulation;
 using SharpNeat.Neat.DistanceMetrics.Double;
@@ -11,8 +13,6 @@ using SharpNeat.Neat.Reproduction.Asexual.WeightMutation;
 using SharpNeat.Neat.Reproduction.Sexual;
 using SharpNeat.Neat.Speciation.GeneticKMeans.Parallelized;
 using SharpNeat.NeuralNets;
-using System;
-using System.Linq;
 
 
 namespace AntSim
@@ -21,12 +21,16 @@ namespace AntSim
     {
         static void Main(string[] args)
         {
+            Log.Logger = new LoggerConfiguration()
+                .WriteTo.Debug()
+                .CreateLogger();
+
             var decoder = NeatGenomeDecoderFactory.CreateGenomeDecoderCyclic(1, true);
             var actFnFactory = new DefaultActivationFunctionFactory<double>(true);
 
             var metaNeatGenome = new MetaNeatGenome<double>(
-                inputNodeCount: 5,
-                outputNodeCount: Enum.GetValues<CreatureOutput>().Count(v => v >= 0),
+                inputNodeCount: Creature.InputNodeCount,
+                outputNodeCount: Creature.OutputNodeCount,
                 isAcyclic: false,
                 activationFn: actFnFactory.GetActivationFunction(ActivationFunctionId.LeakyReLU.ToString()),
                 connectionWeightScale: 5.0);

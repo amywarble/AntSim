@@ -1,7 +1,7 @@
 ﻿using AntSim.Sim;
 using SharpNeat.Evaluation;
 
-namespace AntSim.Util
+namespace AntSim.Eval
 {
     public class CreatureEvaluator : IPhenomeEvaluator<Creature>
     {

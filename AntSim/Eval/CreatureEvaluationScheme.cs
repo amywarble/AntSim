@@ -1,8 +1,8 @@
-﻿using AntSim.Sim;
+﻿using System.Collections.Generic;
+using AntSim.Sim;
 using SharpNeat.Evaluation;
-using System.Collections.Generic;
 
-namespace AntSim.Util
+namespace AntSim.Eval
 {
     public class CreatureEvaluationScheme : IPhenomeEvaluationScheme<Creature>
     {

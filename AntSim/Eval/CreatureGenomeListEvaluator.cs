@@ -1,4 +1,5 @@
 ﻿using AntSim.Sim;
+using AntSim.Util;
 using SharpNeat.BlackBox;
 using SharpNeat.Evaluation;
 using SharpNeat.Neat.Genome;
@@ -6,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace AntSim.Util
+namespace AntSim.Eval
 {
     public class CreatureGenomeListEvaluator : IGenomeListEvaluator<NeatGenome<double>>
     {
@@ -46,12 +47,7 @@ namespace AntSim.Util
                 .Select(x => new Creature(x.Genome, x.Brain))
                 .ToArray();
 
-            var world = _worldFactory.Create();
-
-            foreach (var creature in creatures)
-            {
-                world.Add(creature);
-            }
+            var world = _worldFactory.Create(creatures);
 
             for (var i = 0; i < 30; i++)
             {
