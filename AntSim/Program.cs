@@ -56,7 +56,7 @@ namespace AntSim
 
             var ea = new NeatEvolutionAlgorithm<double>(
                 settings,
-                new CreatureGenomeListEvaluator(worldFactory, decoder, new CreatureEvaluationScheme()),
+                new CreatureGenomeListEvaluator(worldFactory, decoder),
                 new GeneticKMeansSpeciationStrategy<double>(metric, 5, 4),
                 neatPop,
                 new RelativeComplexityRegulationStrategy(10, 30),

@@ -57,9 +57,9 @@ namespace AntSim.Sim
                 if (!_grid.TryGetCreatureCell(creature, out var cell))
                     continue;
 
-                creature.Perceive(this, cell);
+                creature.Perceive(this);
                 creature.Think();
-                creature.Act(this, cell);
+                creature.Act(this);
             }
         }
 

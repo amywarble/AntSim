@@ -15,6 +15,8 @@ namespace AntSim.Sim
         public int Health { get; set; }
         public int Energy { get; set; }
 
+        public Cell CurrentCell { get; set; }
+
 
         public Creature(NeatGenome<double> genome, IBlackBox<double> brain)
         {
@@ -33,7 +35,7 @@ namespace AntSim.Sim
         }
 
 
-        public void Perceive(World world, Cell currentCell)
+        public void Perceive(World world)
         {
             Brain.InputVector.Reset();
 
@@ -44,16 +46,16 @@ namespace AntSim.Sim
             Brain.InputVector[0] = 1.0d;
 
             // Distance to the North wall
-            Brain.InputVector[1] = Clamp((world.Height - currentCell.Y - 1) / world.SensorRange);
+            Brain.InputVector[1] = Clamp((world.Height - CurrentCell.Y - 1) / world.SensorRange);
 
             // Distance to the East wall
-            Brain.InputVector[2] = Clamp((world.Width - currentCell.X - 1) / world.SensorRange);
+            Brain.InputVector[2] = Clamp((world.Width - CurrentCell.X - 1) / world.SensorRange);
 
             // Distance to the South wall
-            Brain.InputVector[3] = Clamp(currentCell.Y / world.SensorRange);
+            Brain.InputVector[3] = Clamp(CurrentCell.Y / world.SensorRange);
 
             // Distance to the West wall
-            Brain.InputVector[4] = Clamp(currentCell.X / world.SensorRange);
+            Brain.InputVector[4] = Clamp(CurrentCell.X / world.SensorRange);
 
             // Energy
             //Brain.InputVector[5] = Clamp(1.0 * Energy / world.MaxEnergy);
@@ -63,7 +65,7 @@ namespace AntSim.Sim
         public void Think() => Brain.Activate();
 
 
-        public void Act(World world, Cell currentCell)
+        public void Act(World world)
         {
             ReadOutput(out var output, out var signal);
 
@@ -72,17 +74,18 @@ namespace AntSim.Sim
 
             var targetCell = output switch
             {
-                0 => currentCell.Grid[currentCell.X, currentCell.Y + 1],    // Move North
-                1 => currentCell.Grid[currentCell.X, currentCell.Y - 1],    // Move South
-                2 => currentCell.Grid[currentCell.X + 1, currentCell.Y],    // Move East
-                3 => currentCell.Grid[currentCell.X - 1, currentCell.Y],    // Move West
+                0 => CurrentCell.Grid[CurrentCell.X, CurrentCell.Y + 1],    // Move North
+                1 => CurrentCell.Grid[CurrentCell.X, CurrentCell.Y - 1],    // Move South
+                2 => CurrentCell.Grid[CurrentCell.X + 1, CurrentCell.Y],    // Move East
+                3 => CurrentCell.Grid[CurrentCell.X - 1, CurrentCell.Y],    // Move West
                 _ => null
             };
 
-            if (targetCell is { IsWall: false, Creature: null } && targetCell != currentCell)
+            if (targetCell is { IsWall: false, Creature: null } && targetCell != CurrentCell)
             {
-                currentCell.Creature = null;
+                CurrentCell.Creature = null;
                 targetCell.Creature = this;
+                CurrentCell = targetCell;
             }
         }
 
@@ -114,6 +117,5 @@ namespace AntSim.Sim
                 > 1 => 1,
                 _ => value
             };
-
     }
 }

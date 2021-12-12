@@ -13,17 +13,14 @@ namespace AntSim.Eval
     {
         private readonly WorldFactory _worldFactory;
         private readonly IGenomeDecoder<NeatGenome<double>, IBlackBox<double>> _decoder;
-        private readonly IPhenomeEvaluationScheme<Creature> _evalScheme;
 
 
         public CreatureGenomeListEvaluator(
             WorldFactory worldFactory,
-            IGenomeDecoder<NeatGenome<double>, IBlackBox<double>> decoder,
-            IPhenomeEvaluationScheme<Creature> evalScheme)
+            IGenomeDecoder<NeatGenome<double>, IBlackBox<double>> decoder)
         {
             _worldFactory = worldFactory;
             _decoder = decoder ?? throw new ArgumentNullException(nameof(decoder));
-            _evalScheme = evalScheme ?? throw new ArgumentNullException(nameof(evalScheme));
         }
 
         public bool IsDeterministic => false;
@@ -34,7 +31,7 @@ namespace AntSim.Eval
         {
             foreach (var g in genomeList)
             {
-                g.FitnessInfo = _evalScheme.NullFitness;
+                g.FitnessInfo = FitnessInfo.DefaultFitnessInfo;
             }
 
             var creatures = genomeList
@@ -54,7 +51,7 @@ namespace AntSim.Eval
                 world.Step();
             }
 
-            var evaluator = _evalScheme.CreateEvaluator();
+            var evaluator = new CreatureEvaluator(world);
             foreach (var c in creatures)
             {
                 c.Genome.FitnessInfo = evaluator.Evaluate(c);
@@ -63,7 +60,7 @@ namespace AntSim.Eval
 
         public bool TestForStopCondition(FitnessInfo fitnessInfo)
         {
-            return _evalScheme.TestForStopCondition(fitnessInfo);
+            return false;
         }
 
         //private static void Draw(World world)
