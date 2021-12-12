@@ -6,9 +6,6 @@ namespace AntSim.Sim
     {
         private Creature _creature;
 
-        public event EventHandler<Creature> CreatureAdded;
-        public event EventHandler<Creature> CreatureRemoved;
-
         public int FoodAmount { get; set; }
         public bool IsWall { get; init; }
 
@@ -38,8 +35,10 @@ namespace AntSim.Sim
                 // 3
                 if (_creature == null)
                 {
+                    if (IsWall)
+                        throw new InvalidOperationException("Trying to move creature into a wall.");
+
                     _creature = value;
-                    OnCreatureAdded(value);
                     return;
                 }
 
@@ -50,13 +49,10 @@ namespace AntSim.Sim
                 }
 
                 // 5
-                var removed = _creature;
                 _creature = null;
-                OnCreatureRemoved(removed);
             }
         }
 
-        protected virtual void OnCreatureAdded(Creature c) => CreatureAdded?.Invoke(this, c);
-        protected virtual void OnCreatureRemoved(Creature c) => CreatureRemoved?.Invoke(this, c);
+        public override string ToString() => $"({X}, {Y})";
     }
 }

@@ -1,7 +1,9 @@
 ﻿using AntSim.Util;
 using Redzen.Random;
+using Serilog;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace AntSim.Sim
 {
@@ -36,9 +38,6 @@ namespace AntSim.Sim
             IRandomSource rand,
             IEnumerable<Creature> creatures)
         {
-            if ((Width = width) < 10) throw new ArgumentOutOfRangeException(nameof(width), width, "Cannot be less than 10.");
-            if ((Height = height) < 10) throw new ArgumentOutOfRangeException(nameof(height), height, "Cannot be less than 10.");
-
             _rand = rand ?? throw new ArgumentNullException(nameof(rand));
             _lookup = new AtanLookup(height, width);
             _grid = new Grid(width, height);
@@ -48,40 +47,45 @@ namespace AntSim.Sim
             SensorRange = sensorRange;
             MaxHealth = maxHealth;
             MaxEnergy = maxEnergy;
+
+            var availableCells = _grid
+                .GetCells()
+                .Where(x => x.CanCreatureMoveHere)
+                .ToList();
+
+            foreach (var creature in _creatures)
+            {
+                creature.Energy = MaxEnergy;
+                creature.Health = MaxHealth;
+
+                var idx = _rand.Next(availableCells.Count);
+                var cell = availableCells[idx];
+                availableCells.RemoveAt(idx);
+
+                AssignCreatureToCell(creature, cell);
+            }
+
+            Console.WriteLine("Starting world:");
+            Console.WriteLine(_grid.Print());
         }
+
 
         public void Step()
         {
             foreach (var creature in _creatures)
             {
-                if (!_grid.TryGetCreatureCell(creature, out var cell))
-                    continue;
-
                 creature.Perceive(this);
                 creature.Think();
                 creature.Act(this);
             }
         }
 
-        public void Add(Creature creature)
-        {
-            int x, y;
-            do
-            {
-                x = _rand.Next(Width - 2) + 1;
-                y = _rand.Next(Height - 2) + 1;
-            } while (!_grid[x, y].CanCreatureMoveHere);
 
-            creature.Init(this);
-            _creatures.Add(_grid[x, y].Creature = creature);
-        }
-
-        public void AddRange(IEnumerable<Creature> creatures)
+        private void AssignCreatureToCell(Creature creature, Cell cell)
         {
-            foreach (var creature in creatures)
-            {
-                Add(creature);
-            }
+            creature.Location = cell;
+            cell.Creature = creature;
+            Log.Information($"Creature assigned at: {cell}");
         }
     }
 }

@@ -65,7 +65,10 @@ namespace AntSim
                 WeightMutationSchemeFactory.CreateDefaultScheme(5.0));
 
             ea.Initialise();
-            ea.PerformOneGeneration();
+            for (; ; )
+            {
+                ea.PerformOneGeneration();
+            }
         }
     }
 }

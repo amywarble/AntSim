@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Text;
 
 namespace AntSim.Sim
 {
@@ -8,7 +9,6 @@ namespace AntSim.Sim
         private const int WallOffset = 1;
 
         private readonly Cell[,] _cells;
-        private readonly Dictionary<Creature, Cell> _creatures = new();
 
         public int Width { get; }
         public int Height { get; }
@@ -38,51 +38,58 @@ namespace AntSim.Sim
                     {
                         IsWall = x < WallOffset
                                  || y < WallOffset
-                                 || x > width + WallOffset
-                                 || y > height + WallOffset
+                                 || x > width + WallOffset - 1
+                                 || y > height + WallOffset - 1
                     };
-
-                    c.CreatureAdded += CreatureAdded;
-                    c.CreatureRemoved += CreatureRemoved;
                 }
             }
         }
 
 
-        private void CreatureAdded(object sender, Creature e)
-        {
-            if (sender is not Cell addedToCell)
-                return;
+        public Cell this[int x, int y] => _cells[x, y];
 
-            if (!_creatures.TryGetValue(e, out var gridCell))
+
+        public IEnumerable<Cell> GetCells()
+        {
+            for (var x = 0; x < _cells.GetLength(0); x++)
             {
-                _creatures.Add(e, addedToCell);
-                return;
+                for (var y = 0; y < _cells.GetLength(1); y++)
+                {
+                    yield return _cells[x, y];
+                }
+            }
+        }
+
+        public override string ToString() => $"({Width} x {Height})";
+
+
+        public string Print()
+        {
+            var sb = new StringBuilder();
+
+            for (var y = 0; y < _cells.GetLength(1); y++)
+            {
+                for (var x = 0; x < _cells.GetLength(0); x++)
+                {
+                    var cell = _cells[x, y];
+                    var c = " ";
+
+                    if (cell.IsWall)
+                    {
+                        c = "=";
+                    }
+                    else if (cell.Creature != null)
+                    {
+                        c = ".";
+                    }
+
+                    sb.Append(c);
+                }
+
+                sb.AppendLine();
             }
 
-            if (gridCell != addedToCell)
-                throw new InvalidOperationException("Creature added to two different cells.");
+            return sb.ToString();
         }
-
-
-        private void CreatureRemoved(object sender, Creature e)
-        {
-            if (sender is not Cell removedFromCell)
-                return;
-
-            if (!_creatures.TryGetValue(e, out var gridCell))
-                throw new InvalidOperationException("Untracked creature was removed from cell.");
-
-            if (removedFromCell != gridCell)
-                throw new InvalidOperationException("Creature removed from the wrong cell.");
-
-            _creatures.Remove(e);
-        }
-
-        public Cell this[int x, int y] => _cells[x + WallOffset, y + WallOffset];
-
-        public override string ToString() => $"Inner: ({Width}, {Height}), Total: ({_cells.GetLength(0)}, {_cells.GetLength(1)})";
-
-        public bool TryGetCreatureCell(Creature creature, out Cell cell) => _creatures.TryGetValue(creature, out cell);
     }
 }

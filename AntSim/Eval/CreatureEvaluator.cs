@@ -15,14 +15,11 @@ namespace AntSim.Eval
 
         public FitnessInfo Evaluate(Creature creature)
         {
-            var current = creature.CurrentCell;
+            var current = creature.Location;
             if (current == null)
                 return FitnessInfo.DefaultFitnessInfo;
 
-            var fitness = current.X > current.Grid.Width * 2 / 3
-                ? 1.0
-                : 0.0;
-            return new FitnessInfo(fitness);
+            return new FitnessInfo(1.0 * current.X / current.Grid.Width);
         }
     }
 }
